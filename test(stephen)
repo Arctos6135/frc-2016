@@ -1,0 +1,5 @@
+public class Test {
+  public static void main(String[] args) {
+    Stdout.println("A R C T 0 S B O Y S");
+  }
+}
