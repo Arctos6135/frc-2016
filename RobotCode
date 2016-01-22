@@ -1,8 +1,11 @@
 
 package org.usfirst.frc.team6135.robot;
 
+import edu.wpi.first.wpilibj.Compressor;
+import edu.wpi.first.wpilibj.DoubleSolenoid;
 import edu.wpi.first.wpilibj.IterativeRobot;
 import edu.wpi.first.wpilibj.Joystick;
+import edu.wpi.first.wpilibj.Solenoid;
 import edu.wpi.first.wpilibj.Victor;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -18,6 +21,16 @@ public class Robot extends IterativeRobot {
 	Joystick driveStick;
 	Victor leftDrive;
 	Victor rightDrive;
+	Compressor airCompress;
+	DoubleSolenoid valve;
+	double rightDriveSet;
+    double leftDriveSet;
+    int reverse = 1;
+    double scale = 1;
+    double deadZone;
+    double leftDriveValue;
+    double rightDriveValue;
+    int debounceLoopCount;
     final String defaultAuto = "Default";
     final String customAuto = "My Auto";
     String autoSelected;
@@ -28,16 +41,18 @@ public class Robot extends IterativeRobot {
      * used for any initialization code.
      */
     public void robotInit() {
-    	
         chooser = new SendableChooser();
         chooser.addDefault("Default Auto", defaultAuto);
         chooser.addObject("My Auto", customAuto);
         SmartDashboard.putData("Auto choices", chooser);
-        
+        airCompress = new Compressor(0);
         driveStick = new Joystick(0);
-        
-        leftDrive = new Victor(1);
-        rightDrive = new Victor(2);
+        airCompress.start();
+        leftDrive = new Victor(0);
+        rightDrive = new Victor(1);
+        valve = new DoubleSolenoid(0, 1);
+        deadZone = 0.05;
+        debounceLoopCount = 0;
     }
     
 	/**
@@ -74,11 +89,57 @@ public class Robot extends IterativeRobot {
      * This function is called periodically during operator control
      */
     public void teleopPeriodic() {
-        leftDrive.set(driveStick.getRawAxis(1) - driveStick.getRawAxis(0));
-        rightDrive.set(-(driveStick.getRawAxis(1) + driveStick.getRawAxis(0)));
-    	/*leftDrive.set(1.0);
-    	rightDrive.set(1.0);*/
-        
+    	leftDriveSet = driveStick.getRawAxis(1) - driveStick.getRawAxis(0);
+    	rightDriveSet = driveStick.getRawAxis(1) + driveStick.getRawAxis(0);
+    	if (driveStick.getRawButton(2) && debounceLoopCount < 1) {
+        	reverse *= -1;
+        	debounceLoopCount = 10;
+        	System.out.println("Reversed");
+        }
+    	if (debounceLoopCount > 0) {
+    		debounceLoopCount--;
+
+    	}
+    	System.out.println("Debounce Loop: " + debounceLoopCount);
+       	leftDriveValue= reverse * leftDriveSet;
+		rightDriveValue= reverse * rightDriveSet;
+    	//Update motors
+    	if (driveStick.getMagnitude() > deadZone) {
+    		leftDrive.set(leftDriveValue);
+            rightDrive.set(rightDriveValue);
+            System.out.println("Driver values set");
+    	}
+    	else {
+    		leftDrive.set(0);
+            rightDrive.set(0);
+            System.out.println("Driver values not set");
+    	}
+    	System.out.println("Left Drive Set: " + leftDriveSet);
+    	System.out.println("Right Drive Set: " + rightDriveSet);
+        System.out.println("Left Drive Value: " + leftDriveValue);
+        System.out.println("Right Drive Value: " + rightDriveValue);
+        if (driveStick.getRawButton(3)) {
+        	System.out.println("Double Solenoid Set to Forward");
+        	valve.set(DoubleSolenoid.Value.kForward);
+        	/*if (valve.get() == DoubleSolenoid.Value.kReverse) {
+        		valve.set(DoubleSolenoid.Value.kForward);
+        	}
+        	else {
+        		valve.set(DoubleSolenoid.Value.kReverse);
+        	}
+        	valve.set(DoubleSolenoid.Value.kForward);*/
+        }
+        else if (driveStick.getRawButton(4)) {
+        	System.out.println("Double Solenoid Set to Reverse");
+        	valve.set(DoubleSolenoid.Value.kReverse);
+        }
+        else {
+        	System.out.println("Double Solenoid Set to Off");
+        	valve.set(DoubleSolenoid.Value.kOff);
+        }
+        System.out.println("End of loop");
+        System.out.println();
+        System.out.println();
     }
     
     /**
@@ -87,5 +148,4 @@ public class Robot extends IterativeRobot {
     public void testPeriodic() {
     
     }
-    
 }
