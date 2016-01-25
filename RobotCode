@@ -5,7 +5,6 @@ import edu.wpi.first.wpilibj.Compressor;
 import edu.wpi.first.wpilibj.DoubleSolenoid;
 import edu.wpi.first.wpilibj.IterativeRobot;
 import edu.wpi.first.wpilibj.Joystick;
-import edu.wpi.first.wpilibj.Solenoid;
 import edu.wpi.first.wpilibj.Victor;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -45,13 +44,12 @@ public class Robot extends IterativeRobot {
         chooser.addDefault("Default Auto", defaultAuto);
         chooser.addObject("My Auto", customAuto);
         SmartDashboard.putData("Auto choices", chooser);
-        airCompress = new Compressor(0);
+        airCompress = new Compressor(1);
         driveStick = new Joystick(0);
-        airCompress.start();
         leftDrive = new Victor(0);
         rightDrive = new Victor(1);
         valve = new DoubleSolenoid(0, 1);
-        deadZone = 0.05;
+        deadZone = 0.2;
         debounceLoopCount = 0;
     }
     
@@ -93,20 +91,19 @@ public class Robot extends IterativeRobot {
     	rightDriveSet = driveStick.getRawAxis(1) + driveStick.getRawAxis(0);
     	if (driveStick.getRawButton(2) && debounceLoopCount < 1) {
         	reverse *= -1;
-        	debounceLoopCount = 10;
+        	debounceLoopCount = 15;
         	System.out.println("Reversed");
         }
     	if (debounceLoopCount > 0) {
     		debounceLoopCount--;
-
     	}
     	System.out.println("Debounce Loop: " + debounceLoopCount);
-       	leftDriveValue= reverse * leftDriveSet;
-		rightDriveValue= reverse * rightDriveSet;
+       	leftDriveValue = reverse * leftDriveSet;
+		rightDriveValue = reverse * rightDriveSet;
     	//Update motors
     	if (driveStick.getMagnitude() > deadZone) {
-    		leftDrive.set(leftDriveValue);
-            rightDrive.set(rightDriveValue);
+    		leftDrive.set(leftDriveValue); //Comment out for testing inputs
+            rightDrive.set(rightDriveValue); //Comment out for testing inputs
             System.out.println("Driver values set");
     	}
     	else {
@@ -119,24 +116,32 @@ public class Robot extends IterativeRobot {
         System.out.println("Left Drive Value: " + leftDriveValue);
         System.out.println("Right Drive Value: " + rightDriveValue);
         if (driveStick.getRawButton(3)) {
+        	airCompress.start();
+        }
+        else if (driveStick.getRawButton(4)) {
+        	airCompress.stop();
+        }
+        else if (driveStick.getRawButton(5)) {
         	System.out.println("Double Solenoid Set to Forward");
-        	valve.set(DoubleSolenoid.Value.kForward);
-        	/*if (valve.get() == DoubleSolenoid.Value.kReverse) {
+        	valve.set(DoubleSolenoid.Value.kForward); //Comment out for testing input
+        	/*if (valve.get() == DoubleSolenoid.Value.kReverse) { //Don't use
         		valve.set(DoubleSolenoid.Value.kForward);
         	}
         	else {
         		valve.set(DoubleSolenoid.Value.kReverse);
         	}
         	valve.set(DoubleSolenoid.Value.kForward);*/
+        	
         }
-        else if (driveStick.getRawButton(4)) {
-        	System.out.println("Double Solenoid Set to Reverse");
-        	valve.set(DoubleSolenoid.Value.kReverse);
+        else if (driveStick.getRawButton(6)) {
+        	System.out.println("Double Solenoid Set to Retract");
+        	valve.set(DoubleSolenoid.Value.kReverse); //Comment out for testing inputs
         }
         else {
         	System.out.println("Double Solenoid Set to Off");
-        	valve.set(DoubleSolenoid.Value.kOff);
+        	valve.set(DoubleSolenoid.Value.kOff); //Comment out for testing inputs
         }
+        System.out.println("Double Solenoid value = " + valve.get());
         System.out.println("End of loop");
         System.out.println();
         System.out.println();
