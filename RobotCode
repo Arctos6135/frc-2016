@@ -3,6 +3,7 @@ package org.usfirst.frc.team6135.robot;
 
 import edu.wpi.first.wpilibj.Compressor;
 import edu.wpi.first.wpilibj.DoubleSolenoid;
+import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.IterativeRobot;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.Victor;
@@ -22,8 +23,6 @@ public class Robot extends IterativeRobot {
 	Joystick driveStick;
 	Victor leftDrive;                     
 	Victor rightDrive;
-	Compressor airCompress;
-	DoubleSolenoid valve;
 	double rightDriveSet;
     double leftDriveSet;
     int reverse = 1;
@@ -36,7 +35,8 @@ public class Robot extends IterativeRobot {
     final String customAuto = "My Auto";
     String autoSelected;
     SendableChooser chooser;
-	
+	Encoder encoder;
+	int pulsesPerRevolution;
     /**
      * This function is run when the robot is first started up and should be
      * used for any initialization code.
@@ -46,14 +46,14 @@ public class Robot extends IterativeRobot {
         chooser.addDefault("Default Auto", defaultAuto);
         chooser.addObject("My Auto", customAuto);
         SmartDashboard.putData("Auto choices", chooser);
-        airCompress = new Compressor();
-        airCompress.stop();
         driveStick = new Joystick(0);
         leftDrive = new Victor(0);
         rightDrive = new Victor(1);
-        valve = new DoubleSolenoid(0, 1);
         deadZone = 0.2;
         debounceLoopCount = 0;
+        pulsesPerRevolution = 1;
+        encoder = new Encoder(1, 2, true, Encoder.EncodingType.k4X);
+        encoder.setDistancePerPulse(8 * Math.PI)
     }
     
 	/**
@@ -119,34 +119,10 @@ public class Robot extends IterativeRobot {
     	System.out.println("Right Drive Set: " + rightDriveSet);
         System.out.println("Left Drive Value: " + leftDriveValue);
         System.out.println("Right Drive Value: " + rightDriveValue);
-        if (driveStick.getRawButton(3)) {
-        	airCompress.setClosedLoopControl(true);
-        	airCompress.start();
-        }
-        else if (driveStick.getRawButton(4)) {
-        	airCompress.stop();
-        }
-        else if (driveStick.getRawButton(5)) {
-        	valve.set(DoubleSolenoid.Value.kOff);
-        	System.out.println("Double Solenoid Set to Forward");
-        	valve.set(DoubleSolenoid.Value.kForward); //Comment out for testing input
-        	
-        	
-        }
-        else if (driveStick.getRawButton(6)) {
-        	valve.set(DoubleSolenoid.Value.kOff);
-        	System.out.println("Double Solenoid Set to Retract");
-        	valve.set(DoubleSolenoid.Value.kReverse); //Comment out for testing inputs
-        }
-        else if (driveStick.getRawButton(7)){
-        	System.out.println("Double Solenoid Set to Off");
-        	valve.set(DoubleSolenoid.Value.kOff); //Comment out for testing inputs
-        }
-        System.out.println("Double Solenoid value = " + valve.get());
         System.out.println("End of loop");
         System.out.println();
         System.out.println();
-        airCompress.setClosedLoopControl(true);
+        //airCompress.setClosedLoopControl(true); //We're not doing pneumatics so..
     }
     
     /**
