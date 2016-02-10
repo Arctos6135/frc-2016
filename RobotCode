@@ -6,6 +6,8 @@ import edu.wpi.first.wpilibj.DoubleSolenoid;
 import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.IterativeRobot;
 import edu.wpi.first.wpilibj.Joystick;
+import edu.wpi.first.wpilibj.Servo;
+import edu.wpi.first.wpilibj.Talon;
 import edu.wpi.first.wpilibj.Victor;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -23,6 +25,11 @@ public class Robot extends IterativeRobot {
 	Joystick driveStick;
 	Victor leftDrive;                     
 	Victor rightDrive;
+	Talon armLift;
+	Talon armWinch;
+	Talon armExtend;
+	//Servo cameraRotate;
+	//Servo cameraTilt;
 	double rightDriveSet;
     double leftDriveSet;
     int reverse = 1;
@@ -53,7 +60,12 @@ public class Robot extends IterativeRobot {
         debounceLoopCount = 0;
         pulsesPerRevolution = 1;
         encoder = new Encoder(1, 2, true, Encoder.EncodingType.k4X);
-        encoder.setDistancePerPulse(8 * Math.PI)
+        encoder.setDistancePerPulse(8 * Math.PI);
+        armWinch = new Talon(4);
+        armExtend = new Talon(5);
+        armLift = new Talon(6);
+        //cameraRotate = new Servo(1);
+        //cameraTilt = new Servo(2);
     }
     
 	/**
@@ -122,7 +134,33 @@ public class Robot extends IterativeRobot {
         System.out.println("End of loop");
         System.out.println();
         System.out.println();
-        //airCompress.setClosedLoopControl(true); //We're not doing pneumatics so..
+        if(driveStick.getRawButton(7)) {
+        	armLift.set(1.0);
+        }
+        else if(driveStick.getRawButton(8)) {
+        	armLift.set(-1.0);
+        }
+        else {
+        	armLift.set(0.0);
+        }
+        if(driveStick.getRawButton(9)) {
+        	armWinch.set(1.0);
+        }
+        else if(driveStick.getRawButton(10)) {
+        	armWinch.set(-1.0);
+        }
+        else {
+        	armWinch.set(0.0);
+        }
+        if(driveStick.getRawButton(11)) {
+        	armExtend.set(1.0);
+        }
+        else if(driveStick.getRawButton(12)) {
+        	armExtend.set(-1.0);
+        }
+        else {
+        	armExtend.set(0.0);
+        }
     }
     
     /**
