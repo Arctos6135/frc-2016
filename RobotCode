@@ -54,8 +54,8 @@ public class Robot extends IterativeRobot {
         chooser.addObject("My Auto", customAuto);
         SmartDashboard.putData("Auto choices", chooser);
         driveStick = new Joystick(0);
-        leftDrive = new Victor(0);
-        rightDrive = new Victor(1);
+        leftDrive = new Victor(1);
+        rightDrive = new Victor(2);
         deadZone = 0.2;
         debounceLoopCount = 0;
         pulsesPerRevolution = 1;
@@ -113,11 +113,10 @@ public class Robot extends IterativeRobot {
     		debounceLoopCount--;
     	}
     	System.out.println("Debounce Loop: " + debounceLoopCount);
-    	if(Math.abs(leftDriveSet-rightDriveSet)<=0.02)
-    	leftDriveValue = reverse * leftDriveSet;
-		rightDriveValue = reverse * rightDriveSet;
+   		leftDriveValue = reverse * leftDriveSet;
+   		rightDriveValue = reverse * rightDriveSet;
     	//Update motors
-    	if (driveStick.getMagnitude() > deadZone) {
+    	if (Math.abs(leftDriveValue) > deadZone && Math.abs(rightDriveValue) > deadZone) {
     		leftDrive.set(leftDriveValue); //Comment out for testing inputs
             rightDrive.set(rightDriveValue); //Comment out for testing inputs
             System.out.println("Driver values set");
