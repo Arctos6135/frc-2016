@@ -28,8 +28,8 @@ public class Robot extends IterativeRobot {
 	Talon armLift;
 	Talon armWinch;
 	Talon armExtend;
-	//Servo cameraRotate;
-	//Servo cameraTilt;
+	Servo cameraRotate;
+	Servo cameraTilt;
 	double rightDriveSet;
     double leftDriveSet;
     int reverse = 1;
@@ -54,8 +54,8 @@ public class Robot extends IterativeRobot {
         chooser.addObject("My Auto", customAuto);
         SmartDashboard.putData("Auto choices", chooser);
         driveStick = new Joystick(0);
-        leftDrive = new Victor(1);
-        rightDrive = new Victor(2);
+        leftDrive = new Victor(0);
+        rightDrive = new Victor(1);
         deadZone = 0.2;
         debounceLoopCount = 0;
         pulsesPerRevolution = 1;
@@ -64,8 +64,8 @@ public class Robot extends IterativeRobot {
         armWinch = new Talon(4);
         armExtend = new Talon(5);
         armLift = new Talon(6);
-        //cameraRotate = new Servo(1);
-        //cameraTilt = new Servo(2);
+        cameraRotate = new Servo(2);
+        cameraTilt = new Servo(3);
     }
     
 	/**
@@ -101,7 +101,7 @@ public class Robot extends IterativeRobot {
     /**
      * This function is called periodically during operator control
      */
-    public void teleopPeriodic() {
+    public void teleopPeriodic(){	
     	leftDriveSet = driveStick.getRawAxis(1) - driveStick.getRawAxis(0);
     	rightDriveSet = driveStick.getRawAxis(1) + driveStick.getRawAxis(0);
     	if (driveStick.getRawButton(2) && debounceLoopCount < 1) {
@@ -133,6 +133,14 @@ public class Robot extends IterativeRobot {
         System.out.println("End of loop");
         System.out.println();
         System.out.println();
+        if (driveStick.getRawButton(3) && debounceLoopCount < 1) {
+        	debounceLoopCount = 15;
+        }
+    	if (debounceLoopCount > 0) {
+    		debounceLoopCount--;
+    	}
+    	cameraRotate.set((driveStick.getRawAxis(0) + 1) / 2 );
+    	cameraTilt.set((driveStick.getRawAxis(1) + 1) / 2 );
         if(driveStick.getRawButton(7)) {
         	armLift.set(1.0);
         }
@@ -161,7 +169,6 @@ public class Robot extends IterativeRobot {
         	armExtend.set(0.0);
         }
     }
-    
     /**
      * This function is called periodically during test mode
      */
