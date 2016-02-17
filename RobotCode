@@ -37,6 +37,12 @@ public class Robot extends IterativeRobot {
     double deadZone;
     double leftDriveValue;
     double rightDriveValue;
+    double xpositive;
+    double xnegative;
+    double ypositive;
+    double ynegative;
+    double prevXAxisVal;
+    double prevYAxisVal;
     int debounceLoopCount;
     final String defaultAuto = "Default";
     final String customAuto = "My Auto";
@@ -59,13 +65,19 @@ public class Robot extends IterativeRobot {
         deadZone = 0.2;
         debounceLoopCount = 0;
         pulsesPerRevolution = 1;
-        encoder = new Encoder(1, 2, true, Encoder.EncodingType.k4X);
-        encoder.setDistancePerPulse(8 * Math.PI);
-        armWinch = new Talon(4);
-        armExtend = new Talon(5);
+        //encoder = new Encoder(1, 2, true, Encoder.EncodingType.k4X);
+        //encoder.setDistancePerPulse(8 * Math.PI);
+        armWinch = new Talon(8);
+        armExtend = new Talon(7);
         armLift = new Talon(6);
-        cameraRotate = new Servo(2);
-        cameraTilt = new Servo(3);
+        cameraRotate = new Servo(4);
+        cameraTilt = new Servo(5);
+        prevXAxisVal=0.0;
+        prevYAxisVal=0.0;
+        xpositive = 0.0;
+        xnegative = 0.0;
+        ypositive = 0.0;
+        ynegative = 0.0;
     }
     
 	/**
@@ -104,7 +116,7 @@ public class Robot extends IterativeRobot {
     public void teleopPeriodic(){	
     	leftDriveSet = driveStick.getRawAxis(1) - driveStick.getRawAxis(0);
     	rightDriveSet = driveStick.getRawAxis(1) + driveStick.getRawAxis(0);
-    	if (driveStick.getRawButton(2) && debounceLoopCount < 1) {
+    	if (driveStick.getRawButton(7) && debounceLoopCount < 1) {
         	reverse *= -1;
         	debounceLoopCount = 15;
         	System.out.println("Reversed");
@@ -133,36 +145,53 @@ public class Robot extends IterativeRobot {
         System.out.println("End of loop");
         System.out.println();
         System.out.println();
-        if (driveStick.getRawButton(3) && debounceLoopCount < 1) {
-        	debounceLoopCount = 15;
+        if ((prevXAxisVal = driveStick.getRawAxis(4)) > 0.1) {
+        xpositive = Math.min(xpositive + 0.01, 1.0);
         }
-    	if (debounceLoopCount > 0) {
-    		debounceLoopCount--;
-    	}
-    	cameraRotate.set((driveStick.getRawAxis(0) + 1) / 2 );
-    	cameraTilt.set((driveStick.getRawAxis(1) + 1) / 2 );
-        if(driveStick.getRawButton(7)) {
+        if(prevXAxisVal < -0.1)
+        {
+        	//if (driveStick.getRawAxis(4) < prevXAxisVal) {
+                xpositive = Math.max(xpositive - 0.01, -1.0);
+        	//else
+        	/*{
+        		if(Math.abs(driveStick.getAxis(4)-1.0)<10e-10)
+        		{
+        			
+        		}
+        		prevXAxisVal=driveStick.getRawAxis(4);
+        	}*/
+        }
+        
+        if ((prevYAxisVal = driveStick.getRawAxis(5)) > 0.1) {
+        ypositive = Math.min(ypositive + 0.01, 1.0);
+        }
+        if (prevYAxisVal < -0.1) {
+        ypositive = Math.max(ypositive - 0.01, -1.0);
+        }
+    	cameraRotate.set(xpositive);
+    	cameraTilt.set(ypositive);
+        if(driveStick.getRawButton(8)) {
         	armLift.set(1.0);
         }
-        else if(driveStick.getRawButton(8)) {
+        else if(driveStick.getRawButton(9)) {
         	armLift.set(-1.0);
         }
         else {
         	armLift.set(0.0);
         }
-        if(driveStick.getRawButton(9)) {
+        if(driveStick.getRawButton(10)) {
         	armWinch.set(1.0);
         }
-        else if(driveStick.getRawButton(10)) {
+        else if(driveStick.getRawButton(11)) {
         	armWinch.set(-1.0);
         }
         else {
         	armWinch.set(0.0);
         }
-        if(driveStick.getRawButton(11)) {
+        if(driveStick.getRawButton(12)) {
         	armExtend.set(1.0);
         }
-        else if(driveStick.getRawButton(12)) {
+        else if(driveStick.getRawButton(13)) {
         	armExtend.set(-1.0);
         }
         else {
