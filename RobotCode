@@ -1,28 +1,21 @@
 
+
 package org.usfirst.frc.team6135.robot;
 
-import edu.wpi.first.wpilibj.Compressor;
-import edu.wpi.first.wpilibj.DoubleSolenoid;
 import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.IterativeRobot;
 import edu.wpi.first.wpilibj.Joystick;
+import edu.wpi.first.wpilibj.RobotDrive;
 import edu.wpi.first.wpilibj.Servo;
 import edu.wpi.first.wpilibj.Talon;
 import edu.wpi.first.wpilibj.Victor;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import edu.wpi.first.wpilibj.buttons.Button;
-import edu.wpi.first.wpilibj.buttons.JoystickButton;
-import com.ni.vision.NIVision;
-import com.ni.vision.NIVision.DrawMode;
 import com.ni.vision.NIVision.Image;
-import com.ni.vision.NIVision.ShapeMode;
 
 import edu.wpi.first.wpilibj.CANSpeedController.ControlMode;
 import edu.wpi.first.wpilibj.CANTalon;
 import edu.wpi.first.wpilibj.CameraServer;
-import edu.wpi.first.wpilibj.SampleRobot;
-import edu.wpi.first.wpilibj.Timer;
 
 /**
  * The VM is configured to automatically run this class, and to call the
@@ -40,19 +33,18 @@ public class Robot extends IterativeRobot {
 	//Talon armExtend;
 	Servo cameraRotate;
 	Servo cameraTilt;
-	double rightDriveSet;
-    double leftDriveSet;
-    int reverse = 1;
+	RobotDrive test;
+    int reverse;
+    
     int session;
     Image frame;
-    double scale = 1;
     double deadZone;
     double leftDriveValue;
     double rightDriveValue;
-    double xpositive;
-    double xnegative;
-    double ypositive;
-    double ynegative;
+    double xCamera;
+    double yCamera;
+    double xSensitivity;
+    double ySensitivity;
     double prevXAxisVal;
     double prevYAxisVal;
     int debounceLoopCount;
@@ -65,6 +57,10 @@ public class Robot extends IterativeRobot {
 	int pulsesPerRevolution;
 	CameraServer server;
 	double cameraDeadZone;
+	double xInput;
+	double yInput;
+	int sensitivityXLoop;
+	int sensitivityYLoop;
     /**
      * This function is run when the robot is first started up and should be
      * used for any initialization code.
@@ -80,6 +76,7 @@ public class Robot extends IterativeRobot {
         deadZone = 0.1;
         debounceLoopCount = 0;
         pulsesPerRevolution = 1;
+        reverse = -1;
         //encoder = new Encoder(1, 2, true, Encoder.EncodingType.k4X);
         //encoder.setDistancePerPulse(8 * Math.PI);
         armWinch = new CANTalon(1);
@@ -87,13 +84,13 @@ public class Robot extends IterativeRobot {
         armLift = new CANTalon(2);
         cameraRotate = new Servo(2);
         cameraTilt = new Servo(3);
-        prevXAxisVal=0.0;
-        prevYAxisVal=0.0;
-        xpositive = 0.0;
-        xnegative = 0.0;
-        ypositive = 0.0;
-        ynegative = 0.0;
-        sensitivity = 0.3;
+        prevXAxisVal = 0.0;
+        prevYAxisVal = 0.0;
+        xCamera = 0.5;
+        yCamera = 0.5;
+        sensitivityXLoop = 0;
+        sensitivityYLoop = 0;
+        sensitivity = 1.0;
         cameraDeadZone = 0.5;
         server = CameraServer.getInstance();
         server.setQuality(50);
@@ -103,8 +100,6 @@ public class Robot extends IterativeRobot {
         armWinch.changeControlMode(CANTalon.TalonControlMode.Follower);
         armWinch.set(armLift.getDeviceID());
         //cameraRotate.
-        cameraRotate.set(0.5);
-        cameraTilt.set(0.5);
     }
     
 	/**
@@ -126,8 +121,8 @@ public class Robot extends IterativeRobot {
      * This function is called periodically during autonomous
      */
     public void autonomousPeriodic() {
-    	leftDrive.set(1.0);
-    	rightDrive.set(1.0);
+    	leftDrive.set(0.4);
+    	rightDrive.set(0.4);
     	switch(autoSelected) {
     	case customAuto:
         //Put custom auto code here   
@@ -143,80 +138,98 @@ public class Robot extends IterativeRobot {
      * This function is called periodically during operator control
      */
     public void teleopPeriodic(){
-    	//leftDriveSet = driveStick.getRawAxis(1) - driveStick.getRawAxis(0);
-    	//rightDriveSet = driveStick.getRawAxis(1) + driveStick.getRawAxis(0);
-    	leftDriveSet = sensitivity * Math.pow((driveStick.getRawAxis(1) - driveStick.getRawAxis(0)),3) 
-    				   + (1 - sensitivity) * ((driveStick.getRawAxis(1) - driveStick.getRawAxis(0)));
-    	rightDriveSet = sensitivity * Math.pow((driveStick.getRawAxis(1) + driveStick.getRawAxis(0)),3) 
-				   + (1 - sensitivity) * ((driveStick.getRawAxis(1) + driveStick.getRawAxis(0)));
-    	if (driveStick.getRawButton(7)) {// && debounceLoopCount < 1) {
-        	reverse = -1;
-        	debounceLoopCount = 15;
+    	//test.arcadeDrive(driveStick.getRawAxis(0), driveStick.getRawAxis(1), true);
+    	xSensitivity = sensitivity * Math.pow(xInput = driveStick.getRawAxis(0), 3)
+    			+ (1 - sensitivity) * xInput;
+    	ySensitivity = sensitivity * Math.pow(yInput = driveStick.getRawAxis(1), 3)
+    			+ (1 - sensitivity) * yInput;
+    	if(xSensitivity > 0.7 && sensitivityXLoop < 15) {// && !driveStick.getRawButton(6)) {
+    		xSensitivity = 0.7 + (xSensitivity - 0.7) * (sensitivityXLoop / 15.0);
+    		sensitivityXLoop++;
+    	}
+    	if(xSensitivity < -0.7 && sensitivityXLoop < 15) {
+    		xSensitivity = -0.7 + (xSensitivity + 0.7) * (sensitivityXLoop / 15.0);
+    		sensitivityXLoop++;
+    	}
+    	if(Math.abs(xSensitivity) <= 0.7) {
+    		sensitivityXLoop = 0;
+    	}
+    	if(ySensitivity > 0.7 && sensitivityYLoop < 15) {
+    		ySensitivity = 0.7 + (ySensitivity - 0.7) * (sensitivityYLoop / 15.0);
+    		sensitivityYLoop++;
+    	}
+    	if(ySensitivity < -0.7 && sensitivityYLoop < 15) {
+    		ySensitivity = -0.7 + (ySensitivity + 0.7) * (sensitivityYLoop / 15.0);
+    		sensitivityYLoop++;
+    	}
+    	if(Math.abs(ySensitivity) <= 0.7) {
+    		sensitivityYLoop = 0;
+    	}
+    	/*if (driveStick.getRawButton(7)) {// && debounceLoopCount < 1) {
+    		
+        	reverse = 1;
+        	//debounceLoopCount = 15;
         	System.out.println("Direction 1");
         }
     	else if(driveStick.getRawButton(8)) {
-    		reverse = 1;
+    		reverse = -1;
     		System.out.println("Direction 2");
-    	}
+    	}*/
+    	leftDriveValue = reverse * ySensitivity + xSensitivity;
+    	rightDriveValue = reverse * ySensitivity - xSensitivity;
+    	/*leftDriveSet = sensitivity * Math.pow((driveStick.getRawAxis(1) - driveStick.getRawAxis(0)),3) 
+    				   + (1 - sensitivity) * ((driveStick.getRawAxis(1) - driveStick.getRawAxis(0)));
+    	rightDriveSet = sensitivity * Math.pow((driveStick.getRawAxis(1) + driveStick.getRawAxis(0)),3) 
+				   + (1 - sensitivity) * ((driveStick.getRawAxis(1) + driveStick.getRawAxis(0)));*/
+    	
     	/*if (debounceLoopCount > 0) {
     		debounceLoopCount--;
     	}*/
-    	System.out.println("Debounce Loop: " + debounceLoopCount);
-   		leftDriveValue = reverse * leftDriveSet;
-   		rightDriveValue = reverse * rightDriveSet;
+    	//System.out.println("Debounce Loop: " + debounceLoopCount);
     	//Update motors
     	if (Math.abs(leftDriveValue) > deadZone && Math.abs(rightDriveValue) > deadZone) {
     		leftDrive.set(leftDriveValue); //Comment out for testing inputs
             rightDrive.set(rightDriveValue); //Comment out for testing inputs
-            System.out.println("Driver values set");
+            //System.out.println("Driver values set");
     	}
     	else {
     		leftDrive.set(0);
             rightDrive.set(0);
-            System.out.println("Driver values not set");
+            //System.out.println("Driver values not set");
     	}
-    	System.out.println("Left Drive Set: " + leftDriveSet);
-    	System.out.println("Right Drive Set: " + rightDriveSet);
-        System.out.println("Left Drive Value: " + leftDriveValue);
-        System.out.println("Right Drive Value: " + rightDriveValue);
-        System.out.println("End of loop");
-        System.out.println();
-        System.out.println();
+    	
         if ((prevXAxisVal = driveStick.getRawAxis(4)) > cameraDeadZone) {
-        xpositive = Math.min(xpositive + 0.01, 1.0);
+        	xCamera = Math.min(xCamera + 0.01, 1.0);
         }
-        /*if(driveStick.getRawButton(9)) {
-        	xpositive = 1.0;
-        }
-        if(driveStick.getRawButton(10)){
-        	xpositive = 0.0;
-        }*/
         if(prevXAxisVal < -cameraDeadZone)
         {
-        	//if (driveStick.getRawAxis(4) < prevXAxisVal) {
-                xpositive = Math.max(xpositive - 0.01, 0.0);
-        	//else
-        	/*{
-        		if(Math.abs(driveStick.getAxis(4)-1.0)<10e-10)
-        		{
-        			
-        		}
-        		prevXAxisVal=driveStick.getRawAxis(4);
-        	}*/
+            xCamera = Math.max(xCamera - 0.01, 0.0);
         }
         if ((prevYAxisVal = driveStick.getRawAxis(5)) > cameraDeadZone) {
-        ypositive = Math.min(ypositive + 0.01, 1.0);
+        	yCamera = Math.min(yCamera + 0.01, 1.0); 
         }
         if (prevYAxisVal < -cameraDeadZone) {
-        ypositive = Math.max(ypositive - 0.01, 0.0);
+        	yCamera = Math.max(yCamera - 0.01, 0.0);
         }
-    	cameraRotate.set(xpositive);
-    	cameraTilt.set(ypositive);
-    	System.out.println("Camera X: " + xpositive);
-    	System.out.println("Camera Y: " + ypositive);
+        if(driveStick.getRawButton(10)){
+        	xCamera = 0.5;
+        	yCamera = 0.5;
+        }
+    	cameraRotate.set(xCamera);
+    	cameraTilt.set(yCamera);
+    	System.out.println("Joystick X Input: " + xInput);
+    	System.out.println("Joystick Y Input: " + yInput);
+    	System.out.println("Left Drive Sensitivity: " + xSensitivity);
+    	System.out.println("Right Drive Sensitivity: " + ySensitivity);
+        System.out.println("Left Drive Value: " + leftDriveValue);
+        System.out.println("Right Drive Value: " + rightDriveValue);
+    	System.out.println("Camera X: " + xCamera);
+    	System.out.println("Camera Y: " + yCamera);
     	System.out.println("Pwm X: " + cameraRotate.getRaw());
     	System.out.println("Pwm Y: " + cameraTilt.getRaw());
-    	
+    	System.out.println("End of loop");
+        System.out.println();
+        System.out.println();
     	if(driveStick.getRawButton(1) && armLift.getOutputCurrent() < 58) {
         	armLift.set(1.0);
         }
