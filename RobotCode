@@ -28,11 +28,13 @@ public class Robot extends IterativeRobot {
 	Joystick driveStick;
 	Victor leftDrive;                     
 	Victor rightDrive;
-	CANTalon armLift;
-	CANTalon armWinch;
+	Victor armWinch;
+	CANTalon rightArmRotate;
+	CANTalon leftArmRotate;
 	//Talon armExtend;
 	Servo cameraRotate;
 	Servo cameraTilt;
+	Servo lockWinch;
 	RobotDrive test;
     int reverse;
     
@@ -61,6 +63,7 @@ public class Robot extends IterativeRobot {
 	double yInput;
 	int sensitivityXLoop;
 	int sensitivityYLoop;
+	int cameraLoopCount;
     /**
      * This function is run when the robot is first started up and should be
      * used for any initialization code.
@@ -73,17 +76,20 @@ public class Robot extends IterativeRobot {
         driveStick = new Joystick(0);
         leftDrive = new Victor(0);
         rightDrive = new Victor(1);
+        armWinch = new Victor(2);
         deadZone = 0.1;
         debounceLoopCount = 0;
+        cameraLoopCount = 0;
         pulsesPerRevolution = 1;
         reverse = -1;
         //encoder = new Encoder(1, 2, true, Encoder.EncodingType.k4X);
         //encoder.setDistancePerPulse(8 * Math.PI);
-        armWinch = new CANTalon(1);
+        leftArmRotate = new CANTalon(1);
         //armExtend = new Talon(7);
-        armLift = new CANTalon(2);
+        rightArmRotate = new CANTalon(2);
         cameraRotate = new Servo(2);
         cameraTilt = new Servo(3);
+        lockWinch = new Servo(4);
         prevXAxisVal = 0.0;
         prevYAxisVal = 0.0;
         xCamera = 0.5;
@@ -96,9 +102,9 @@ public class Robot extends IterativeRobot {
         server.setQuality(50);
         //the camera name (ex "cam0") can be found through the roborio web interface
         server.startAutomaticCapture("cam0");
-        armLift.changeControlMode(CANTalon.TalonControlMode.PercentVbus);
-        armWinch.changeControlMode(CANTalon.TalonControlMode.Follower);
-        armWinch.set(armLift.getDeviceID());
+        rightArmRotate.changeControlMode(CANTalon.TalonControlMode.PercentVbus);
+        leftArmRotate.changeControlMode(CANTalon.TalonControlMode.Follower);
+        leftArmRotate.set(rightArmRotate.getDeviceID());
         //cameraRotate.
     }
     
@@ -188,8 +194,8 @@ public class Robot extends IterativeRobot {
     	//System.out.println("Debounce Loop: " + debounceLoopCount);
     	//Update motors
     	if (Math.abs(leftDriveValue) > deadZone && Math.abs(rightDriveValue) > deadZone) {
-    		leftDrive.set(leftDriveValue); //Comment out for testing inputs
-            rightDrive.set(rightDriveValue); //Comment out for testing inputs
+    		//leftDrive.set(leftDriveValue); //Comment out for testing inputs
+            //rightDrive.set(rightDriveValue); //Comment out for testing inputs
             //System.out.println("Driver values set");
     	}
     	else {
@@ -197,23 +203,55 @@ public class Robot extends IterativeRobot {
             rightDrive.set(0);
             //System.out.println("Driver values not set");
     	}
-    	
-        if ((prevXAxisVal = driveStick.getRawAxis(4)) > cameraDeadZone) {
-        	xCamera = Math.min(xCamera + 0.01, 1.0);
+    	if ((prevXAxisVal = driveStick.getRawAxis(4)) > cameraDeadZone) {
+    		if (xCamera >= 1.0){
+    			xCamera = 1.0;
+    		}
+    		xCamera += 0.01;
+    	}
+    	else if ((prevXAxisVal = driveStick.getRawAxis(4)) < -cameraDeadZone) {
+    		if (xCamera <= 0.0){
+    			xCamera = 0.0;
+    		}
+    		xCamera -= 0.01;
+    	}
+    	if ((prevYAxisVal = driveStick.getRawAxis(5)) > cameraDeadZone) {
+    		if (yCamera >= 1.0){
+    			yCamera = 1.0;
+    		}
+    		yCamera += 0.01;
+    	}
+    	else if ((prevYAxisVal = driveStick.getRawAxis(5)) < -cameraDeadZone) {
+    		if (yCamera <= 0.0){
+    			yCamera = 0.0;
+    		}
+    		yCamera -= 0.01;
+    	}
+        /*if ((prevXAxisVal = driveStick.getRawAxis(4)) > cameraDeadZone && cameraLoopCount < 15) {
+        	xCamera = Math.min(xCamera - 0.01, 1.0);
+        	cameraLoopCount++;
         }
-        if(prevXAxisVal < -cameraDeadZone)
-        {
-            xCamera = Math.max(xCamera - 0.01, 0.0);
+        else if(prevXAxisVal < -cameraDeadZone && cameraLoopCount < 15) {
+          	cameraLoopCount++;
+            xCamera = Math.max(xCamera + 0.01, 0.0);
         }
-        if ((prevYAxisVal = driveStick.getRawAxis(5)) > cameraDeadZone) {
+        else {
+        	cameraLoopCount = 0;
+        }
+        if ((prevYAxisVal = driveStick.getRawAxis(5)) > cameraDeadZone && cameraLoopCount < 15) {
         	yCamera = Math.min(yCamera + 0.01, 1.0); 
+        	cameraLoopCount++;
         }
-        if (prevYAxisVal < -cameraDeadZone) {
+        else if (prevYAxisVal < -cameraDeadZone && cameraLoopCount < 15) {
         	yCamera = Math.max(yCamera - 0.01, 0.0);
+        	cameraLoopCount++;
         }
+        else {
+        	cameraLoopCount = 0;
+        }*/
         if(driveStick.getRawButton(10)){
-        	xCamera = 0.5;
-        	yCamera = 0.5;
+        	xCamera = 0.33;
+        	yCamera = 0.61;
         }
     	cameraRotate.set(xCamera);
     	cameraTilt.set(yCamera);
@@ -230,24 +268,31 @@ public class Robot extends IterativeRobot {
     	System.out.println("End of loop");
         System.out.println();
         System.out.println();
-    	if(driveStick.getRawButton(1) && armLift.getOutputCurrent() < 58) {
-        	armLift.set(1.0);
+    	if(driveStick.getRawButton(1) && rightArmRotate.getOutputCurrent() < 58) {
+        	rightArmRotate.set(1.0);
         }
         else if(driveStick.getRawButton(2)) {
-        	armLift.set(-1.0);
+        	rightArmRotate.set(-1.0);
         }
         else {
-        	armLift.set(0.0);;
+        	rightArmRotate.set(0.0);;
         }
+    	if(driveStick.getRawButton(3)) {
+    		armWinch.set(0.5);
+    	}
+    	if(driveStick.getRawButton(4)) {
+    		armWinch.set(-0.5);
+    		lockWinch.set(1.0);
+    	}
         /*
         if(driveStick.getRawButton(3)) {
-        	armWinch.set(1.0);
+        	leftArmRotate.set(1.0);
         }
         else if(driveStick.getRawButton(4)) {
-        	armWinch.set(-1.0);
+        	leftArmRotate.set(-1.0);
         }
         else {
-        	armWinch.set(0.0);
+        	leftArmRotate.set(0.0);
         }*/
         /*if(driveStick.getRawButton(5)) {
         	armExtend.set(1.0);
